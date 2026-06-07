@@ -1,12 +1,14 @@
 import { useMemo, useState } from "react";
-import { BookOpen } from "lucide-react";
+import { BookOpen, CalendarDays, Pencil, PieChart } from "lucide-react";
 import { Calendar } from "./components/Calendar";
+import { ReportPanel } from "./components/ReportPanel";
 import { RecordPanel } from "./components/RecordPanel";
 import { SubjectManager } from "./components/SubjectManager";
 import { Summary } from "./components/Summary";
 import { useLocalStorage } from "./hooks/useLocalStorage";
 import type { StudyData, StudyRecord, Subject } from "./types";
 import { getMonthKey, moveMonth, toDateKey } from "./utils/date";
+import { subjectColorOptions, subjectIconOptions } from "./utils/subjectVisuals";
 
 const nowIso = () => new Date().toISOString();
 const createId = () =>
@@ -16,19 +18,22 @@ const createId = () =>
 
 const initialData: StudyData = {
   subjects: [
-    { id: "subject-english", name: "英単語帳", createdAt: nowIso() },
-    { id: "subject-math", name: "数学IA", createdAt: nowIso() },
-    { id: "subject-bookkeeping", name: "簿記", createdAt: nowIso() },
-    { id: "subject-toeic", name: "TOEIC", createdAt: nowIso() },
+    { id: "subject-english", name: "英単語帳", icon: "📘", color: "#2354b8", createdAt: nowIso() },
+    { id: "subject-math", name: "数学IA", icon: "⭐", color: "#f39a12", createdAt: nowIso() },
+    { id: "subject-bookkeeping", name: "簿記", icon: "📊", color: "#17bf4b", createdAt: nowIso() },
+    { id: "subject-toeic", name: "TOEIC", icon: "🎧", color: "#a047b8", createdAt: nowIso() },
   ],
   studyRecords: [],
 };
+
+type AppView = "input" | "calendar" | "report";
 
 function App() {
   const todayKey = toDateKey(new Date());
   const [data, setData] = useLocalStorage<StudyData>("study-ledger-data-v1", initialData);
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(todayKey);
+  const [activeView, setActiveView] = useState<AppView>("input");
 
   const monthKey = getMonthKey(currentMonth);
 
@@ -72,15 +77,17 @@ function App() {
     setData((current) => recipe(current));
   };
 
-  const addSubject = (name: string) => {
-    const subject: Subject = { id: createId(), name, createdAt: nowIso() };
+  const addSubject = (name: string, icon = subjectIconOptions[0], color = subjectColorOptions[0]) => {
+    const subject: Subject = { id: createId(), name, icon, color, createdAt: nowIso() };
     updateData((current) => ({ ...current, subjects: [...current.subjects, subject] }));
   };
 
-  const updateSubject = (id: string, name: string) => {
+  const updateSubject = (id: string, name: string, icon?: string, color?: string) => {
     updateData((current) => ({
       ...current,
-      subjects: current.subjects.map((subject) => (subject.id === id ? { ...subject, name } : subject)),
+      subjects: current.subjects.map((subject) =>
+        subject.id === id ? { ...subject, name, icon: icon ?? subject.icon, color: color ?? subject.color } : subject,
+      ),
     }));
   };
 
@@ -143,45 +150,80 @@ function App() {
         </div>
       </header>
 
-      <main className="dashboard-layout">
-        <div className="main-column">
-          <Summary
-            monthlyTotal={monthlyTotal}
-            todayTotal={todayTotal}
-            subjectTotals={subjectTotals}
-            subjects={data.subjects}
-          />
-          <Calendar
-            currentMonth={currentMonth}
-            selectedDate={selectedDate}
-            todayKey={todayKey}
-            dailyTotals={dailyTotals}
-            onChangeMonth={changeMonth}
-            onSelectDate={setSelectedDate}
-          />
-        </div>
-
-        <div className="side-column">
-          <RecordPanel
-            selectedDate={selectedDate}
-            subjects={data.subjects}
-            records={data.studyRecords}
-            onSelectDate={setSelectedDate}
-            onAddRecord={addRecord}
-            onUpdateRecord={updateRecord}
-            onDeleteRecord={deleteRecord}
-          />
-          <div id="subject-manager">
-            <SubjectManager
+      <main className="mobile-app-layout">
+        {activeView === "input" && (
+          <div className="view-stack">
+            <RecordPanel
+              selectedDate={selectedDate}
               subjects={data.subjects}
-              recordCounts={recordCounts}
-              onAddSubject={addSubject}
-              onUpdateSubject={updateSubject}
-              onDeleteSubject={deleteSubject}
+              records={data.studyRecords}
+              onSelectDate={setSelectedDate}
+              onAddRecord={addRecord}
+              onUpdateRecord={updateRecord}
+              onDeleteRecord={deleteRecord}
+            />
+            <div id="subject-manager">
+              <SubjectManager
+                subjects={data.subjects}
+                recordCounts={recordCounts}
+                onAddSubject={addSubject}
+                onUpdateSubject={updateSubject}
+                onDeleteSubject={deleteSubject}
+              />
+            </div>
+          </div>
+        )}
+
+        {activeView === "calendar" && (
+          <div className="view-stack">
+            <Summary
+              monthlyTotal={monthlyTotal}
+              todayTotal={todayTotal}
+              subjectTotals={subjectTotals}
+              subjects={data.subjects}
+            />
+            <Calendar
+              currentMonth={currentMonth}
+              selectedDate={selectedDate}
+              todayKey={todayKey}
+              dailyTotals={dailyTotals}
+              onChangeMonth={changeMonth}
+              onSelectDate={setSelectedDate}
             />
           </div>
-        </div>
+        )}
+
+        {activeView === "report" && (
+          <div className="view-stack">
+            <Summary
+              monthlyTotal={monthlyTotal}
+              todayTotal={todayTotal}
+              subjectTotals={subjectTotals}
+              subjects={data.subjects}
+            />
+            <ReportPanel monthlyTotal={monthlyTotal} subjectTotals={subjectTotals} subjects={data.subjects} />
+          </div>
+        )}
       </main>
+
+      <nav className="bottom-nav" aria-label="メインメニュー">
+        <button className={activeView === "input" ? "is-active" : ""} type="button" onClick={() => setActiveView("input")}>
+          <Pencil size={25} />
+          <span>入力</span>
+        </button>
+        <button
+          className={activeView === "calendar" ? "is-active" : ""}
+          type="button"
+          onClick={() => setActiveView("calendar")}
+        >
+          <CalendarDays size={25} />
+          <span>カレンダー</span>
+        </button>
+        <button className={activeView === "report" ? "is-active" : ""} type="button" onClick={() => setActiveView("report")}>
+          <PieChart size={25} />
+          <span>レポート</span>
+        </button>
+      </nav>
     </div>
   );
 }
