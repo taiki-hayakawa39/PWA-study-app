@@ -1,12 +1,13 @@
 import { Edit3, Plus, Save, Trash2, X } from "lucide-react";
 import { FormEvent, useState } from "react";
 import type { Subject } from "../types";
+import { getSubjectColor, getSubjectIcon, subjectColorOptions, subjectIconOptions } from "../utils/subjectVisuals";
 
 type SubjectManagerProps = {
   subjects: Subject[];
   recordCounts: Map<string, number>;
-  onAddSubject: (name: string) => void;
-  onUpdateSubject: (id: string, name: string) => void;
+  onAddSubject: (name: string, icon: string, color: string) => void;
+  onUpdateSubject: (id: string, name: string, icon: string, color: string) => void;
   onDeleteSubject: (id: string) => void;
 };
 
@@ -18,6 +19,8 @@ export function SubjectManager({
   onDeleteSubject,
 }: SubjectManagerProps) {
   const [name, setName] = useState("");
+  const [icon, setIcon] = useState(subjectIconOptions[0]);
+  const [color, setColor] = useState(subjectColorOptions[0]);
   const [editingId, setEditingId] = useState<string | null>(null);
 
   const submit = (event: FormEvent) => {
@@ -26,23 +29,29 @@ export function SubjectManager({
     if (!trimmed) return;
 
     if (editingId) {
-      onUpdateSubject(editingId, trimmed);
+      onUpdateSubject(editingId, trimmed, icon, color);
     } else {
-      onAddSubject(trimmed);
+      onAddSubject(trimmed, icon, color);
     }
 
     setName("");
+    setIcon(subjectIconOptions[0]);
+    setColor(subjectColorOptions[0]);
     setEditingId(null);
   };
 
   const startEdit = (subject: Subject) => {
     setEditingId(subject.id);
     setName(subject.name);
+    setIcon(getSubjectIcon(subject));
+    setColor(getSubjectColor(subject));
   };
 
   const cancel = () => {
     setEditingId(null);
     setName("");
+    setIcon(subjectIconOptions[0]);
+    setColor(subjectColorOptions[0]);
   };
 
   return (
@@ -54,8 +63,33 @@ export function SubjectManager({
         </div>
       </div>
 
-      <form className="inline-form" onSubmit={submit}>
+      <form className="subject-form" onSubmit={submit}>
         <input value={name} onChange={(event) => setName(event.target.value)} placeholder="例：英単語帳、数学IA" />
+        <div className="subject-visual-picker" aria-label="イラスト選択">
+          {subjectIconOptions.map((option) => (
+            <button
+              key={option}
+              className={`visual-option ${icon === option ? "is-selected" : ""}`}
+              type="button"
+              onClick={() => setIcon(option)}
+              aria-label={`${option}を選択`}
+            >
+              {option}
+            </button>
+          ))}
+        </div>
+        <div className="subject-color-picker" aria-label="色選択">
+          {subjectColorOptions.map((option) => (
+            <button
+              key={option}
+              className={`color-option ${color === option ? "is-selected" : ""}`}
+              type="button"
+              onClick={() => setColor(option)}
+              style={{ background: option }}
+              aria-label={`${option}を選択`}
+            />
+          ))}
+        </div>
         {editingId && (
           <button className="icon-button subtle" type="button" onClick={cancel} aria-label="編集を取消">
             <X size={17} />
@@ -70,9 +104,14 @@ export function SubjectManager({
       <div className="subject-list">
         {subjects.map((subject) => (
           <div key={subject.id} className="subject-row">
-            <div>
-              <strong>{subject.name}</strong>
-              <p>{recordCounts.get(subject.id) ?? 0}件の記録</p>
+            <div className="subject-row-main">
+              <span className="subject-row-icon" style={{ color: getSubjectColor(subject) }}>
+                {getSubjectIcon(subject)}
+              </span>
+              <div>
+                <strong>{subject.name}</strong>
+                <p>{recordCounts.get(subject.id) ?? 0}件の記録</p>
+              </div>
             </div>
             <div className="icon-actions">
               <button className="icon-button subtle" type="button" onClick={() => startEdit(subject)} aria-label="教材名を編集">
