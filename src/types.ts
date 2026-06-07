@@ -1,6 +1,8 @@
 export type Subject = {
   id: string;
   name: string;
+  icon?: string;
+  color?: string;
   createdAt: string;
 };
 
