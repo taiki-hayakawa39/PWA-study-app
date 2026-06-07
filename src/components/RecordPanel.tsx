@@ -1,13 +1,7 @@
 import {
-  BookOpen,
-  Calculator,
   ChevronLeft,
   ChevronRight,
   Edit3,
-  FileText,
-  GraduationCap,
-  Languages,
-  Pencil,
   Plus,
   Save,
   Trash2,
@@ -16,6 +10,7 @@ import {
 import { useEffect, useMemo, useState } from "react";
 import type { CSSProperties, FormEvent } from "react";
 import type { StudyRecord, Subject } from "../types";
+import { getSubjectColor, getSubjectIcon } from "../utils/subjectVisuals";
 import { formatMinutes, parseDurationToMinutes } from "../utils/time";
 
 type RecordPanelProps = {
@@ -27,15 +22,6 @@ type RecordPanelProps = {
   onUpdateRecord: (id: string, record: Pick<StudyRecord, "subjectId" | "durationMinutes" | "memo">) => void;
   onDeleteRecord: (id: string) => void;
 };
-
-const subjectLooks = [
-  { Icon: Languages, color: "#f39a12" },
-  { Icon: Calculator, color: "#17bf4b" },
-  { Icon: BookOpen, color: "#2354b8" },
-  { Icon: GraduationCap, color: "#e64f92" },
-  { Icon: FileText, color: "#f2cf22" },
-  { Icon: Pencil, color: "#62d7b8" },
-];
 
 const toLocalDate = (dateKey: string) => {
   const [year, month, day] = dateKey.split("-").map(Number);
@@ -164,8 +150,7 @@ export function RecordPanel({
 
         <div className="subject-tile-grid" role="radiogroup" aria-label="サブジェクト選択">
           {subjects.map((subject, index) => {
-            const look = subjectLooks[index % subjectLooks.length];
-            const Icon = look.Icon;
+            const subjectColor = getSubjectColor(subject, index);
             return (
               <button
                 key={subject.id}
@@ -174,9 +159,11 @@ export function RecordPanel({
                 role="radio"
                 aria-checked={subject.id === subjectId}
                 onClick={() => setSubjectId(subject.id)}
-                style={{ "--subject-color": look.color } as CSSProperties}
+                style={{ "--subject-color": subjectColor } as CSSProperties}
               >
-                <Icon size={34} />
+                <span className="subject-illustration" aria-hidden="true">
+                  {getSubjectIcon(subject, index)}
+                </span>
                 <span>{subject.name}</span>
               </button>
             );
@@ -213,9 +200,14 @@ export function RecordPanel({
           ) : (
             selectedRecords.map((record) => (
               <article key={record.id} className="record-item">
-                <div>
-                  <strong>{getSubjectName(record.subjectId)}</strong>
-                  <p>{record.memo || "メモなし"}</p>
+                <div className="record-main">
+                  <span className="record-icon">
+                    {getSubjectIcon(subjects.find((subject) => subject.id === record.subjectId))}
+                  </span>
+                  <div>
+                    <strong>{getSubjectName(record.subjectId)}</strong>
+                    <p>{record.memo || "メモなし"}</p>
+                  </div>
                 </div>
                 <div className="record-actions">
                   <span>{formatMinutes(record.durationMinutes)}</span>
