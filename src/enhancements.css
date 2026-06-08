@@ -99,6 +99,67 @@
   display: none;
 }
 
+.calendar-record-panel {
+  overflow: hidden;
+}
+
+.calendar-record-list {
+  display: grid;
+  gap: 0;
+  margin: 0 -18px -18px;
+}
+
+.calendar-record-group {
+  display: grid;
+  border-top: 1px solid #dddddd;
+}
+
+.calendar-record-date {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 9px 18px;
+  color: #4a4a4a;
+  background: #f3f3f3;
+  font-weight: 900;
+}
+
+.calendar-record-row {
+  display: grid;
+  grid-template-columns: 46px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 18px;
+  background: #ffffff;
+  border-top: 1px solid #e5e5e5;
+}
+
+.calendar-record-icon {
+  display: grid;
+  width: 42px;
+  height: 42px;
+  place-items: center;
+  color: var(--subject-color, #18c834);
+  font-size: 28px;
+}
+
+.calendar-record-row strong {
+  color: #3f4445;
+  font-size: 19px;
+}
+
+.calendar-record-row p {
+  margin: 3px 0 0;
+  color: #6d7374;
+}
+
+.calendar-record-row > span:last-child {
+  color: #3f4445;
+  font-size: 20px;
+  font-weight: 900;
+}
+
 .report-panel {
   overflow: hidden;
 }
