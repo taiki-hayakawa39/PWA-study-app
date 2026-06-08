@@ -6,7 +6,7 @@ export type Subject = {
   createdAt: string;
 };
 
-export type StudyRecord = {
+export type StudyEntry = {
   id: string;
   date: string;
   subjectId: string;
@@ -16,7 +16,12 @@ export type StudyRecord = {
   updatedAt: string;
 };
 
+export type StudyRecord = StudyEntry;
+
+export type StudyGoal = StudyEntry;
+
 export type StudyData = {
   subjects: Subject[];
   studyRecords: StudyRecord[];
+  studyGoals: StudyGoal[];
 };
