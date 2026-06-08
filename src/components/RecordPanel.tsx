@@ -18,6 +18,8 @@ type RecordPanelProps = {
   selectedDate: string;
   subjects: Subject[];
   records: StudyRecord[];
+  editRecordRequest: StudyRecord | null;
+  onEditRecordLoaded: () => void;
   onSelectDate: (dateKey: string) => void;
   onAddRecord: (record: Omit<StudyRecord, "id" | "createdAt" | "updatedAt">) => void;
   onUpdateRecord: (id: string, record: Pick<StudyRecord, "subjectId" | "durationMinutes" | "memo">) => void;
@@ -46,6 +48,8 @@ export function RecordPanel({
   selectedDate,
   subjects,
   records,
+  editRecordRequest,
+  onEditRecordLoaded,
   onSelectDate,
   onAddRecord,
   onUpdateRecord,
@@ -70,6 +74,16 @@ export function RecordPanel({
     setMemo("");
     setSuccessMessage("");
   }, [selectedDate, subjects]);
+
+  useEffect(() => {
+    if (!editRecordRequest) return;
+    setEditingId(editRecordRequest.id);
+    setSubjectId(editRecordRequest.subjectId);
+    setDuration(String(editRecordRequest.durationMinutes));
+    setMemo(editRecordRequest.memo);
+    setSuccessMessage("");
+    onEditRecordLoaded();
+  }, [editRecordRequest, onEditRecordLoaded]);
 
   useEffect(() => {
     if (!successMessage) return;
