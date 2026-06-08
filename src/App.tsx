@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { BookOpen, CalendarDays, Pencil, PieChart } from "lucide-react";
 import { Calendar } from "./components/Calendar";
+import { CalendarRecordList } from "./components/CalendarRecordList";
 import { ReportPanel } from "./components/ReportPanel";
 import { RecordPanel } from "./components/RecordPanel";
 import { SubjectManager } from "./components/SubjectManager";
@@ -132,6 +133,12 @@ function App() {
     }));
   };
 
+  const selectDate = (dateKey: string) => {
+    setSelectedDate(dateKey);
+    const [year, month] = dateKey.split("-").map(Number);
+    setCurrentMonth(new Date(year, month - 1, 1));
+  };
+
   const changeMonth = (amount: number) => {
     const nextMonth = moveMonth(currentMonth, amount);
     setCurrentMonth(nextMonth);
@@ -157,7 +164,7 @@ function App() {
               selectedDate={selectedDate}
               subjects={data.subjects}
               records={data.studyRecords}
-              onSelectDate={setSelectedDate}
+              onSelectDate={selectDate}
               onAddRecord={addRecord}
               onUpdateRecord={updateRecord}
               onDeleteRecord={deleteRecord}
@@ -188,8 +195,9 @@ function App() {
               todayKey={todayKey}
               dailyTotals={dailyTotals}
               onChangeMonth={changeMonth}
-              onSelectDate={setSelectedDate}
+              onSelectDate={selectDate}
             />
+            <CalendarRecordList records={monthlyRecords} subjects={data.subjects} />
           </div>
         )}
 
