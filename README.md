@@ -1,50 +1,70 @@
 # Study Ledger
 
-家計簿のような感覚で、日付ごとの勉強時間を記録・確認するためのローカル保存型アプリです。
+Study Ledger is a local study-time tracking app.
 
-## 起動方法
+## Real React App
 
-```bash
-npm install
-npm run dev
+Install Node.js LTS first:
+
+```text
+https://nodejs.org/
 ```
 
-表示されたローカルURLをブラウザで開きます。
+Then run:
 
-この環境では `npm` / `pnpm` / `yarn` が利用できなかったため、作成時点ではビルド実行まで確認できていません。Node.js と npm が入っている環境で上記コマンドを実行してください。
+```text
+start-app.bat
+```
 
-## 操作方法
+The app opens at:
 
-- カレンダーの日付を選ぶと、その日の記録を確認できます。
-- 教材・科目を選び、勉強時間とメモを入力して記録できます。
-- 勉強時間は `1.5`、`90分`、`1時間30分` のように入力できます。
-- 記録と教材・科目は編集・削除できます。
-- データはブラウザの `localStorage` に保存され、ページ更新後も残ります。
+```text
+http://127.0.0.1:5173/
+```
 
-## 実装済み機能
+## Simple Preview
 
-- 月表示カレンダー
-- 日ごとの勉強記録追加・編集・削除
-- 教材・科目の追加・編集・削除
-- 今日の合計時間
-- 選択日の合計時間
-- 月ごとの合計時間
-- 教材・科目ごとの月間合計
-- レスポンシブデザイン
+For quick local checking without the full React/Vite setup, run:
 
-## 動作確認手順
+```text
+start-web-app.bat
+```
 
-1. 教材・科目を追加します。
-2. カレンダーから日付を選びます。
-3. 複数の勉強記録を追加し、日別合計とカレンダー表示が更新されることを確認します。
-4. 月を移動し、月間合計と教材別サマリーが変わることを確認します。
-5. ページを更新し、登録済みデータが残ることを確認します。
+The preview opens at:
 
-## 今後追加しやすい機能
+```text
+http://127.0.0.1:4173/preview.html
+```
 
-- PWA対応
-- 学習目標と達成率
-- 週別・月別グラフ
-- CSVエクスポート
-- データベース同期
-- 通知・リマインダー
+## Smooth GitHub Workflow
+
+Windows tools can fail when the project path contains Japanese characters.
+Use the included ASCII-path workflow.
+
+First-time setup:
+
+```text
+setup-github-workspace.bat
+```
+
+Commit and push current app changes:
+
+```text
+commit-current-app.bat
+```
+
+See details:
+
+```text
+GITHUB_WORKFLOW.md
+```
+
+## Features
+
+- Record study date, subject, duration in minutes, and memo
+- Save data in browser localStorage
+- Calendar view with daily totals
+- Calendar record list showing saved details
+- Report view with subject totals
+- Subject management with icon and color
+- Responsive layout for PC and mobile
