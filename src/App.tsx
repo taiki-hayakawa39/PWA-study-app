@@ -1,15 +1,20 @@
 import { useMemo, useState } from "react";
-import { BookOpen, CalendarDays, Pencil, PieChart } from "lucide-react";
+import { BookOpen, CalendarDays, LogOut, Pencil, PieChart, Timer } from "lucide-react";
+import { AuthPanel } from "./components/AuthPanel";
+import type { AuthUser } from "./components/AuthPanel";
 import { Calendar } from "./components/Calendar";
 import { CalendarRecordList } from "./components/CalendarRecordList";
 import { ReportPanel } from "./components/ReportPanel";
 import { RecordPanel } from "./components/RecordPanel";
 import { SubjectManager } from "./components/SubjectManager";
 import { Summary } from "./components/Summary";
+import { TimerPanel } from "./components/TimerPanel";
 import { useLocalStorage } from "./hooks/useLocalStorage";
-import type { StudyData, StudyRecord, Subject } from "./types";
+import type { StudyData, StudyGoal, StudyRecord, Subject } from "./types";
 import { getMonthKey, moveMonth, toDateKey } from "./utils/date";
 import { subjectColorOptions, subjectIconOptions } from "./utils/subjectVisuals";
+
+const sessionKey = "study-ledger-current-user-v1";
 
 const nowIso = () => new Date().toISOString();
 const createId = () =>
@@ -25,13 +30,28 @@ const initialData: StudyData = {
     { id: "subject-toeic", name: "TOEIC", icon: "🎧", color: "#a047b8", createdAt: nowIso() },
   ],
   studyRecords: [],
+  studyGoals: [],
 };
 
-type AppView = "input" | "calendar" | "report";
+type AppView = "input" | "calendar" | "timer" | "report";
+
+const loadSessionUser = (): AuthUser | null => {
+  try {
+    const savedUserId = localStorage.getItem(sessionKey);
+    if (!savedUserId) return null;
+    const users = JSON.parse(localStorage.getItem("study-ledger-users-v1") || "[]") as AuthUser[];
+    return users.find((user) => user.id === savedUserId) ?? null;
+  } catch {
+    return null;
+  }
+};
 
 function App() {
   const todayKey = toDateKey(new Date());
-  const [data, setData] = useLocalStorage<StudyData>("study-ledger-data-v1", initialData);
+  const [currentUser, setCurrentUser] = useState<AuthUser | null>(() => loadSessionUser());
+  const dataKey = currentUser ? `study-ledger-data-v1:${currentUser.id}` : "study-ledger-data-v1:locked";
+  const [data, setData] = useLocalStorage<StudyData>(dataKey, initialData);
+  const safeData = { ...data, studyGoals: data.studyGoals ?? [] };
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(todayKey);
   const [activeView, setActiveView] = useState<AppView>("input");
@@ -40,17 +60,25 @@ function App() {
   const monthKey = getMonthKey(currentMonth);
 
   const monthlyRecords = useMemo(
-    () => data.studyRecords.filter((record) => record.date.startsWith(monthKey)),
-    [data.studyRecords, monthKey],
+    () => safeData.studyRecords.filter((record) => record.date.startsWith(monthKey)),
+    [safeData.studyRecords, monthKey],
   );
 
   const dailyTotals = useMemo(() => {
     const totals = new Map<string, number>();
-    data.studyRecords.forEach((record) => {
+    safeData.studyRecords.forEach((record) => {
       totals.set(record.date, (totals.get(record.date) ?? 0) + record.durationMinutes);
     });
     return totals;
-  }, [data.studyRecords]);
+  }, [safeData.studyRecords]);
+
+  const dailyGoalTotals = useMemo(() => {
+    const totals = new Map<string, number>();
+    safeData.studyGoals.forEach((goal) => {
+      totals.set(goal.date, (totals.get(goal.date) ?? 0) + goal.durationMinutes);
+    });
+    return totals;
+  }, [safeData.studyGoals]);
 
   const subjectTotals = useMemo(() => {
     const totals = new Map<string, number>();
@@ -66,17 +94,32 @@ function App() {
 
   const recordCounts = useMemo(() => {
     const counts = new Map<string, number>();
-    data.studyRecords.forEach((record) => {
+    safeData.studyRecords.forEach((record) => {
       counts.set(record.subjectId, (counts.get(record.subjectId) ?? 0) + 1);
     });
+    safeData.studyGoals.forEach((goal) => {
+      counts.set(goal.subjectId, (counts.get(goal.subjectId) ?? 0) + 1);
+    });
     return counts;
-  }, [data.studyRecords]);
+  }, [safeData.studyRecords, safeData.studyGoals]);
 
   const monthlyTotal = monthlyRecords.reduce((sum, record) => sum + record.durationMinutes, 0);
   const todayTotal = dailyTotals.get(todayKey) ?? 0;
 
+  const login = (user: AuthUser) => {
+    localStorage.setItem(sessionKey, user.id);
+    setCurrentUser(user);
+  };
+
+  const logout = () => {
+    localStorage.removeItem(sessionKey);
+    setCurrentUser(null);
+    setActiveView("input");
+    setEditRecordRequest(null);
+  };
+
   const updateData = (recipe: (current: StudyData) => StudyData) => {
-    setData((current) => recipe(current));
+    setData((current) => recipe({ ...current, studyGoals: current.studyGoals ?? [] }));
   };
 
   const addSubject = (name: string, icon = subjectIconOptions[0], color = subjectColorOptions[0]) => {
@@ -100,12 +143,16 @@ function App() {
 
       return {
         subjects: remainingSubjects,
-        // 教材削除時も過去の記録は残し、選択肢があれば先頭の教材へ付け替えます。
         studyRecords: fallbackSubjectId
           ? current.studyRecords.map((record) =>
               record.subjectId === id ? { ...record, subjectId: fallbackSubjectId, updatedAt: nowIso() } : record,
             )
           : current.studyRecords.filter((record) => record.subjectId !== id),
+        studyGoals: fallbackSubjectId
+          ? current.studyGoals.map((goal) =>
+              goal.subjectId === id ? { ...goal, subjectId: fallbackSubjectId, updatedAt: nowIso() } : goal,
+            )
+          : current.studyGoals.filter((goal) => goal.subjectId !== id),
       };
     });
   };
@@ -134,6 +181,28 @@ function App() {
     }));
   };
 
+  const addGoal = (goal: Omit<StudyGoal, "id" | "createdAt" | "updatedAt">) => {
+    const timestamp = nowIso();
+    updateData((current) => ({
+      ...current,
+      studyGoals: [...current.studyGoals, { ...goal, id: createId(), createdAt: timestamp, updatedAt: timestamp }],
+    }));
+  };
+
+  const updateGoal = (id: string, goal: Pick<StudyGoal, "subjectId" | "durationMinutes" | "memo">) => {
+    updateData((current) => ({
+      ...current,
+      studyGoals: current.studyGoals.map((item) => (item.id === id ? { ...item, ...goal, updatedAt: nowIso() } : item)),
+    }));
+  };
+
+  const deleteGoal = (id: string) => {
+    updateData((current) => ({
+      ...current,
+      studyGoals: current.studyGoals.filter((goal) => goal.id !== id),
+    }));
+  };
+
   const selectDate = (dateKey: string) => {
     setSelectedDate(dateKey);
     const [year, month] = dateKey.split("-").map(Number);
@@ -152,6 +221,10 @@ function App() {
     setSelectedDate(toDateKey(nextMonth));
   };
 
+  if (!currentUser) {
+    return <AuthPanel onLogin={login} />;
+  }
+
   return (
     <div className="app-shell">
       <header className="app-header">
@@ -162,6 +235,12 @@ function App() {
           <p className="eyebrow">Study Ledger</p>
           <h1>勉強時間管理</h1>
         </div>
+        <div className="user-menu">
+          <span>{currentUser.username}</span>
+          <button className="icon-button subtle" type="button" onClick={logout} aria-label="ログアウト">
+            <LogOut size={18} />
+          </button>
+        </div>
       </header>
 
       <main className="mobile-app-layout">
@@ -169,18 +248,22 @@ function App() {
           <div className="view-stack">
             <RecordPanel
               selectedDate={selectedDate}
-              subjects={data.subjects}
-              records={data.studyRecords}
+              subjects={safeData.subjects}
+              records={safeData.studyRecords}
+              goals={safeData.studyGoals}
               editRecordRequest={editRecordRequest}
               onEditRecordLoaded={() => setEditRecordRequest(null)}
               onSelectDate={selectDate}
               onAddRecord={addRecord}
               onUpdateRecord={updateRecord}
               onDeleteRecord={deleteRecord}
+              onAddGoal={addGoal}
+              onUpdateGoal={updateGoal}
+              onDeleteGoal={deleteGoal}
             />
             <div id="subject-manager">
               <SubjectManager
-                subjects={data.subjects}
+                subjects={safeData.subjects}
                 recordCounts={recordCounts}
                 onAddSubject={addSubject}
                 onUpdateSubject={updateSubject}
@@ -192,40 +275,38 @@ function App() {
 
         {activeView === "calendar" && (
           <div className="view-stack">
-            <Summary
-              monthlyTotal={monthlyTotal}
-              todayTotal={todayTotal}
-              subjectTotals={subjectTotals}
-              subjects={data.subjects}
-            />
+            <Summary monthlyTotal={monthlyTotal} todayTotal={todayTotal} subjectTotals={subjectTotals} subjects={safeData.subjects} />
             <Calendar
               currentMonth={currentMonth}
               selectedDate={selectedDate}
               todayKey={todayKey}
               dailyTotals={dailyTotals}
-              records={data.studyRecords}
-              subjects={data.subjects}
+              dailyGoalTotals={dailyGoalTotals}
+              records={safeData.studyRecords}
+              goals={safeData.studyGoals}
+              subjects={safeData.subjects}
               onChangeMonth={changeMonth}
               onSelectDate={selectDate}
             />
             <CalendarRecordList
               records={monthlyRecords}
-              subjects={data.subjects}
+              subjects={safeData.subjects}
               onEditRecord={editRecordFromCalendar}
               onDeleteRecord={deleteRecord}
             />
           </div>
         )}
 
+        {activeView === "timer" && (
+          <div className="view-stack">
+            <TimerPanel selectedDate={selectedDate} subjects={safeData.subjects} onAddRecord={addRecord} />
+          </div>
+        )}
+
         {activeView === "report" && (
           <div className="view-stack">
-            <Summary
-              monthlyTotal={monthlyTotal}
-              todayTotal={todayTotal}
-              subjectTotals={subjectTotals}
-              subjects={data.subjects}
-            />
-            <ReportPanel monthlyTotal={monthlyTotal} subjectTotals={subjectTotals} subjects={data.subjects} />
+            <Summary monthlyTotal={monthlyTotal} todayTotal={todayTotal} subjectTotals={subjectTotals} subjects={safeData.subjects} />
+            <ReportPanel monthlyTotal={monthlyTotal} subjectTotals={subjectTotals} subjects={safeData.subjects} />
           </div>
         )}
       </main>
@@ -235,13 +316,13 @@ function App() {
           <Pencil size={25} />
           <span>入力</span>
         </button>
-        <button
-          className={activeView === "calendar" ? "is-active" : ""}
-          type="button"
-          onClick={() => setActiveView("calendar")}
-        >
+        <button className={activeView === "calendar" ? "is-active" : ""} type="button" onClick={() => setActiveView("calendar")}>
           <CalendarDays size={25} />
           <span>カレンダー</span>
+        </button>
+        <button className={activeView === "timer" ? "is-active" : ""} type="button" onClick={() => setActiveView("timer")}>
+          <Timer size={25} />
+          <span>タイマー</span>
         </button>
         <button className={activeView === "report" ? "is-active" : ""} type="button" onClick={() => setActiveView("report")}>
           <PieChart size={25} />
