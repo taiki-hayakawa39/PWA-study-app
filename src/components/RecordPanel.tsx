@@ -1,6 +1,7 @@
 import {
   ChevronLeft,
   ChevronRight,
+  CheckCircle2,
   Edit3,
   Plus,
   Save,
@@ -54,6 +55,7 @@ export function RecordPanel({
   const [subjectId, setSubjectId] = useState("");
   const [duration, setDuration] = useState("");
   const [memo, setMemo] = useState("");
+  const [successMessage, setSuccessMessage] = useState("");
 
   const selectedRecords = useMemo(
     () => records.filter((record) => record.date === selectedDate),
@@ -66,7 +68,14 @@ export function RecordPanel({
     setSubjectId(subjects[0]?.id ?? "");
     setDuration("");
     setMemo("");
+    setSuccessMessage("");
   }, [selectedDate, subjects]);
+
+  useEffect(() => {
+    if (!successMessage) return;
+    const timer = window.setTimeout(() => setSuccessMessage(""), 2600);
+    return () => window.clearTimeout(timer);
+  }, [successMessage]);
 
   const resetForm = () => {
     setEditingId(null);
@@ -78,7 +87,7 @@ export function RecordPanel({
   const startEdit = (record: StudyRecord) => {
     setEditingId(record.id);
     setSubjectId(record.subjectId);
-    setDuration(String(record.durationMinutes / 60));
+    setDuration(String(record.durationMinutes));
     setMemo(record.memo);
   };
 
@@ -91,12 +100,16 @@ export function RecordPanel({
   const handleSubmit = (event: FormEvent) => {
     event.preventDefault();
     const durationMinutes = parseDurationToMinutes(duration);
-    if (!subjectId || durationMinutes <= 0) return;
+    const selectedSubjectId = subjectId || subjects[0]?.id || "";
+    setSuccessMessage("");
+    if (!selectedSubjectId || durationMinutes <= 0) return;
 
     if (editingId) {
-      onUpdateRecord(editingId, { subjectId, durationMinutes, memo: memo.trim() });
+      onUpdateRecord(editingId, { subjectId: selectedSubjectId, durationMinutes, memo: memo.trim() });
+      setSuccessMessage("データが更新されました");
     } else {
-      onAddRecord({ date: selectedDate, subjectId, durationMinutes, memo: memo.trim() });
+      onAddRecord({ date: selectedDate, subjectId: selectedSubjectId, durationMinutes, memo: memo.trim() });
+      setSuccessMessage("データが入力されました");
     }
 
     resetForm();
@@ -116,6 +129,13 @@ export function RecordPanel({
       </div>
 
       <form className="ledger-entry-form" onSubmit={handleSubmit}>
+        {successMessage && (
+          <div className="success-message" role="status">
+            <CheckCircle2 size={21} />
+            <span>{successMessage}</span>
+          </div>
+        )}
+
         <div className="ledger-row">
           <span className="ledger-label">日付</span>
           <button className="plain-arrow" type="button" onClick={() => moveSelectedDate(-1)} aria-label="前の日">
@@ -137,10 +157,10 @@ export function RecordPanel({
           <input
             value={duration}
             onChange={(event) => setDuration(event.target.value)}
-            placeholder="0"
-            inputMode="decimal"
+            placeholder="30"
+            inputMode="numeric"
           />
-          <span className="ledger-unit">時間</span>
+          <span className="ledger-unit">分</span>
         </label>
 
         <div className="subject-picker-header">
