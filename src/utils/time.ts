@@ -8,12 +8,12 @@ export const formatMinutes = (minutes: number): string => {
   return `${hours}時間${rest}分`;
 };
 
-export const formatCompactHours = (minutes: number): string => {
+export const formatCompactMinutes = (minutes: number): string => {
   if (minutes <= 0) return "";
-  if (minutes < 60) return `${minutes}m`;
-  const hours = minutes / 60;
-  return `${Number.isInteger(hours) ? hours.toFixed(0) : hours.toFixed(1)}h`;
+  return `${minutes}分`;
 };
+
+export const formatCompactHours = formatCompactMinutes;
 
 export const parseDurationToMinutes = (value: string): number => {
   const normalized = value.trim().replace(/[０-９．]/g, (char) =>
@@ -21,7 +21,7 @@ export const parseDurationToMinutes = (value: string): number => {
   );
   if (!normalized) return 0;
 
-  // "1.5", "1.5h", "1時間30分", "90分" のような入力を分に寄せる。
+  // Explicit hour/minute text is still accepted, but plain numbers are stored as minutes.
   const hourMatch = normalized.match(/(\d+(?:\.\d+)?)\s*(時間|h|hour|hours)/i);
   const minuteMatch = normalized.match(/(\d+)\s*(分|m|min|mins|minute|minutes)/i);
 
@@ -33,5 +33,5 @@ export const parseDurationToMinutes = (value: string): number => {
 
   const plainNumber = Number(normalized);
   if (Number.isNaN(plainNumber)) return 0;
-  return Math.round(plainNumber * 60);
+  return Math.round(plainNumber);
 };
