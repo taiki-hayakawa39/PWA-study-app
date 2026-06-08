@@ -10,20 +10,26 @@ import {
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import type { CSSProperties, FormEvent } from "react";
-import type { StudyRecord, Subject } from "../types";
+import type { StudyGoal, StudyRecord, Subject } from "../types";
 import { getSubjectColor, getSubjectIcon } from "../utils/subjectVisuals";
 import { formatMinutes, parseDurationToMinutes } from "../utils/time";
+
+type InputMode = "actual" | "goal";
 
 type RecordPanelProps = {
   selectedDate: string;
   subjects: Subject[];
   records: StudyRecord[];
+  goals: StudyGoal[];
   editRecordRequest: StudyRecord | null;
   onEditRecordLoaded: () => void;
   onSelectDate: (dateKey: string) => void;
   onAddRecord: (record: Omit<StudyRecord, "id" | "createdAt" | "updatedAt">) => void;
   onUpdateRecord: (id: string, record: Pick<StudyRecord, "subjectId" | "durationMinutes" | "memo">) => void;
   onDeleteRecord: (id: string) => void;
+  onAddGoal: (goal: Omit<StudyGoal, "id" | "createdAt" | "updatedAt">) => void;
+  onUpdateGoal: (id: string, goal: Pick<StudyGoal, "subjectId" | "durationMinutes" | "memo">) => void;
+  onDeleteGoal: (id: string) => void;
 };
 
 const toLocalDate = (dateKey: string) => {
@@ -48,14 +54,20 @@ export function RecordPanel({
   selectedDate,
   subjects,
   records,
+  goals,
   editRecordRequest,
   onEditRecordLoaded,
   onSelectDate,
   onAddRecord,
   onUpdateRecord,
   onDeleteRecord,
+  onAddGoal,
+  onUpdateGoal,
+  onDeleteGoal,
 }: RecordPanelProps) {
+  const [inputMode, setInputMode] = useState<InputMode>("actual");
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingGoalId, setEditingGoalId] = useState<string | null>(null);
   const [subjectId, setSubjectId] = useState("");
   const [duration, setDuration] = useState("");
   const [memo, setMemo] = useState("");
@@ -65,10 +77,13 @@ export function RecordPanel({
     () => records.filter((record) => record.date === selectedDate),
     [records, selectedDate],
   );
+  const selectedGoals = useMemo(() => goals.filter((goal) => goal.date === selectedDate), [goals, selectedDate]);
   const dailyTotal = selectedRecords.reduce((sum, record) => sum + record.durationMinutes, 0);
+  const dailyGoalTotal = selectedGoals.reduce((sum, goal) => sum + goal.durationMinutes, 0);
 
   useEffect(() => {
     setEditingId(null);
+    setEditingGoalId(null);
     setSubjectId(subjects[0]?.id ?? "");
     setDuration("");
     setMemo("");
@@ -77,7 +92,9 @@ export function RecordPanel({
 
   useEffect(() => {
     if (!editRecordRequest) return;
+    setInputMode("actual");
     setEditingId(editRecordRequest.id);
+    setEditingGoalId(null);
     setSubjectId(editRecordRequest.subjectId);
     setDuration(String(editRecordRequest.durationMinutes));
     setMemo(editRecordRequest.memo);
@@ -93,16 +110,33 @@ export function RecordPanel({
 
   const resetForm = () => {
     setEditingId(null);
+    setEditingGoalId(null);
     setSubjectId(subjects[0]?.id ?? "");
     setDuration("");
     setMemo("");
   };
 
+  const switchMode = (mode: InputMode) => {
+    setInputMode(mode);
+    resetForm();
+  };
+
   const startEdit = (record: StudyRecord) => {
+    setInputMode("actual");
     setEditingId(record.id);
+    setEditingGoalId(null);
     setSubjectId(record.subjectId);
     setDuration(String(record.durationMinutes));
     setMemo(record.memo);
+  };
+
+  const startEditGoal = (goal: StudyGoal) => {
+    setInputMode("goal");
+    setEditingGoalId(goal.id);
+    setEditingId(null);
+    setSubjectId(goal.subjectId);
+    setDuration(String(goal.durationMinutes));
+    setMemo(goal.memo);
   };
 
   const moveSelectedDate = (amount: number) => {
@@ -118,7 +152,15 @@ export function RecordPanel({
     setSuccessMessage("");
     if (!selectedSubjectId || durationMinutes <= 0) return;
 
-    if (editingId) {
+    if (inputMode === "goal") {
+      if (editingGoalId) {
+        onUpdateGoal(editingGoalId, { subjectId: selectedSubjectId, durationMinutes, memo: memo.trim() });
+        setSuccessMessage("目標を更新しました");
+      } else {
+        onAddGoal({ date: selectedDate, subjectId: selectedSubjectId, durationMinutes, memo: memo.trim() });
+        setSuccessMessage("目標を入力しました");
+      }
+    } else if (editingId) {
       onUpdateRecord(editingId, { subjectId: selectedSubjectId, durationMinutes, memo: memo.trim() });
       setSuccessMessage("データが更新されました");
     } else {
@@ -130,14 +172,15 @@ export function RecordPanel({
   };
 
   const getSubjectName = (id: string) => subjects.find((subject) => subject.id === id)?.name ?? "削除済み教材";
+  const isEditing = Boolean(editingId || editingGoalId);
 
   return (
     <section className="panel detail-panel ledger-input-panel" aria-label="勉強時間入力">
       <div className="input-mode-tabs" aria-label="入力モード">
-        <button className="mode-tab is-active" type="button">
+        <button className={`mode-tab ${inputMode === "actual" ? "is-active" : ""}`} type="button" onClick={() => switchMode("actual")}>
           勉強
         </button>
-        <button className="mode-tab" type="button">
+        <button className={`mode-tab ${inputMode === "goal" ? "is-active" : ""}`} type="button" onClick={() => switchMode("goal")}>
           目標
         </button>
       </div>
@@ -168,18 +211,15 @@ export function RecordPanel({
 
         <label className="ledger-row ledger-duration-row">
           <span className="ledger-label">時間</span>
-          <input
-            value={duration}
-            onChange={(event) => setDuration(event.target.value)}
-            placeholder="30"
-            inputMode="numeric"
-          />
+          <input value={duration} onChange={(event) => setDuration(event.target.value)} placeholder="30" inputMode="numeric" />
           <span className="ledger-unit">分</span>
         </label>
 
         <div className="subject-picker-header">
           <span>サブジェクト</span>
-          <div className="total-chip">{formatMinutes(dailyTotal)}</div>
+          <div className="total-chip">
+            実績 {formatMinutes(dailyTotal)} / 目標 {formatMinutes(dailyGoalTotal)}
+          </div>
         </div>
 
         <div className="subject-tile-grid" role="radiogroup" aria-label="サブジェクト選択">
@@ -209,15 +249,15 @@ export function RecordPanel({
         </div>
 
         <div className="form-actions ledger-form-actions">
-          {editingId && (
+          {isEditing && (
             <button className="secondary-button" type="button" onClick={resetForm}>
               <X size={17} />
               取消
             </button>
           )}
           <button className="primary-button ledger-submit" type="submit" disabled={subjects.length === 0}>
-            {editingId ? <Save size={18} /> : <Plus size={18} />}
-            {editingId ? "記録を更新する" : "勉強を記録する"}
+            {isEditing ? <Save size={18} /> : <Plus size={18} />}
+            {inputMode === "goal" ? (editingGoalId ? "目標を更新する" : "目標を記録する") : editingId ? "記録を更新する" : "勉強を記録する"}
           </button>
         </div>
       </form>
@@ -225,35 +265,59 @@ export function RecordPanel({
       <div className="daily-record-section">
         <div className="section-title-row">
           <h3>この日の記録</h3>
-          <span>{formatMinutes(dailyTotal)}</span>
+          <span>
+            実績 {formatMinutes(dailyTotal)} / 目標 {formatMinutes(dailyGoalTotal)}
+          </span>
         </div>
 
         <div className="record-list">
-          {selectedRecords.length === 0 ? (
+          {selectedRecords.length === 0 && selectedGoals.length === 0 ? (
             <p className="empty-text">この日の記録はまだありません。</p>
           ) : (
-            selectedRecords.map((record) => (
-              <article key={record.id} className="record-item">
-                <div className="record-main">
-                  <span className="record-icon">
-                    {getSubjectIcon(subjects.find((subject) => subject.id === record.subjectId))}
-                  </span>
-                  <div>
-                    <strong>{getSubjectName(record.subjectId)}</strong>
-                    <p>{record.memo || "メモなし"}</p>
+            <>
+              {selectedRecords.map((record) => (
+                <article key={record.id} className="record-item">
+                  <div className="record-main">
+                    <span className="record-icon">{getSubjectIcon(subjects.find((subject) => subject.id === record.subjectId))}</span>
+                    <div>
+                      <span className="record-type-label actual">実績</span>
+                      <strong>{getSubjectName(record.subjectId)}</strong>
+                      <p>{record.memo || "メモなし"}</p>
+                    </div>
                   </div>
-                </div>
-                <div className="record-actions">
-                  <span>{formatMinutes(record.durationMinutes)}</span>
-                  <button className="icon-button subtle" type="button" onClick={() => startEdit(record)} aria-label="記録を編集">
-                    <Edit3 size={17} />
-                  </button>
-                  <button className="icon-button danger" type="button" onClick={() => onDeleteRecord(record.id)} aria-label="記録を削除">
-                    <Trash2 size={17} />
-                  </button>
-                </div>
-              </article>
-            ))
+                  <div className="record-actions">
+                    <span>{formatMinutes(record.durationMinutes)}</span>
+                    <button className="icon-button subtle" type="button" onClick={() => startEdit(record)} aria-label="記録を編集">
+                      <Edit3 size={17} />
+                    </button>
+                    <button className="icon-button danger" type="button" onClick={() => onDeleteRecord(record.id)} aria-label="記録を削除">
+                      <Trash2 size={17} />
+                    </button>
+                  </div>
+                </article>
+              ))}
+              {selectedGoals.map((goal) => (
+                <article key={goal.id} className="record-item">
+                  <div className="record-main">
+                    <span className="record-icon">{getSubjectIcon(subjects.find((subject) => subject.id === goal.subjectId))}</span>
+                    <div>
+                      <span className="record-type-label goal">目標</span>
+                      <strong>{getSubjectName(goal.subjectId)}</strong>
+                      <p>{goal.memo || "メモなし"}</p>
+                    </div>
+                  </div>
+                  <div className="record-actions">
+                    <span>{formatMinutes(goal.durationMinutes)}</span>
+                    <button className="icon-button subtle" type="button" onClick={() => startEditGoal(goal)} aria-label="目標を編集">
+                      <Edit3 size={17} />
+                    </button>
+                    <button className="icon-button danger" type="button" onClick={() => onDeleteGoal(goal.id)} aria-label="目標を削除">
+                      <Trash2 size={17} />
+                    </button>
+                  </div>
+                </article>
+              ))}
+            </>
           )}
         </div>
       </div>
