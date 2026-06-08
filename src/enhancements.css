@@ -154,10 +154,69 @@
   color: #6d7374;
 }
 
-.calendar-record-row > span:last-child {
+.calendar-record-row > span:last-child,
+.calendar-record-actions > span {
   color: #3f4445;
   font-size: 20px;
   font-weight: 900;
+}
+
+.calendar-record-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.calendar-record-actions .icon-button {
+  width: auto;
+  min-width: 54px;
+  padding: 0 10px;
+  font-size: 13px;
+}
+
+.day-breakdown {
+  margin-top: 14px;
+  padding: 14px;
+  background: #f8fbfa;
+  border: 1px solid #dbe5e3;
+  border-radius: 8px;
+}
+
+.day-breakdown h3 {
+  margin: 0 0 10px;
+  color: #263233;
+  font-size: 17px;
+}
+
+.breakdown-formula {
+  margin: 0;
+  color: #365f65;
+  font-size: 18px;
+  font-weight: 900;
+}
+
+.breakdown-list {
+  display: grid;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.breakdown-row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  color: #4a4a4a;
+}
+
+.breakdown-icon {
+  display: grid;
+  width: 32px;
+  height: 32px;
+  place-items: center;
+  color: var(--subject-color, #18c834);
+  font-size: 23px;
 }
 
 .report-panel {
@@ -312,6 +371,16 @@
 }
 
 @media (max-width: 640px) {
+  .calendar-record-row {
+    grid-template-columns: 38px minmax(0, 1fr);
+  }
+
+  .calendar-record-actions {
+    grid-column: 2;
+    justify-content: flex-start;
+    flex-wrap: wrap;
+  }
+
   .report-content {
     grid-template-columns: 1fr;
   }
