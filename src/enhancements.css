@@ -2,6 +2,71 @@
   padding-bottom: 112px;
 }
 
+.user-menu {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.user-menu span {
+  max-width: 160px;
+  overflow: hidden;
+  color: #365f65;
+  font-weight: 900;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.auth-shell {
+  display: grid;
+  min-height: 100vh;
+  place-items: center;
+  padding: 24px;
+}
+
+.auth-panel {
+  width: min(460px, 100%);
+}
+
+.auth-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.auth-brand h1 {
+  margin: 0;
+  color: #172526;
+  font-size: 26px;
+}
+
+.auth-tabs {
+  width: 100%;
+  margin: 0 0 16px;
+}
+
+.auth-form {
+  display: grid;
+  gap: 14px;
+}
+
+.auth-message {
+  margin: 0;
+  padding: 10px 12px;
+  color: #9d3f2e;
+  background: #fbebe8;
+  border: 1px solid #f0c8c0;
+  border-radius: 8px;
+  font-weight: 900;
+}
+
+.auth-submit {
+  min-height: 50px;
+  margin-top: 4px;
+}
+
 .mobile-app-layout,
 .view-stack {
   display: grid;
@@ -82,21 +147,82 @@
 }
 
 .success-message {
+  position: fixed;
+  top: 46%;
+  left: 50%;
+  z-index: 60;
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 8px;
-  margin: 0 18px 14px;
-  padding: 12px 14px;
+  width: min(320px, calc(100% - 48px));
+  min-height: 56px;
+  margin: 0;
+  padding: 13px 18px;
+  transform: translate(-50%, -50%);
   color: #12802a;
-  background: #e7faeb;
+  background: rgba(231, 250, 235, 0.98);
   border: 1px solid #9be5a8;
   border-radius: 8px;
+  box-shadow: 0 18px 44px rgba(31, 41, 43, 0.22);
   font-size: 15px;
   font-weight: 900;
+  text-align: center;
 }
 
 .success-message[hidden] {
   display: none;
+}
+
+.day-study-stack {
+  display: grid;
+  min-height: 42px;
+  align-content: end;
+  gap: 3px;
+}
+
+.day-actual {
+  color: #1f68c9;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.day-goal {
+  color: #d24b3a;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.day-clear {
+  width: fit-content;
+  padding: 2px 7px;
+  color: #12802a;
+  background: #e7faeb;
+  border: 1px solid #9be5a8;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.record-type-label {
+  display: inline-flex;
+  width: fit-content;
+  align-items: center;
+  margin-bottom: 4px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.record-type-label.actual {
+  color: #1f68c9;
+  background: #eaf2ff;
+}
+
+.record-type-label.goal {
+  color: #d24b3a;
+  background: #fff0ee;
 }
 
 .calendar-record-panel {
@@ -345,7 +471,7 @@
   left: 0;
   z-index: 20;
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   min-height: 78px;
   padding: 7px max(14px, env(safe-area-inset-left)) calc(7px + env(safe-area-inset-bottom));
   background: rgba(255, 255, 255, 0.96);
@@ -370,7 +496,94 @@
   color: #18c834;
 }
 
+.timer-panel {
+  overflow: hidden;
+}
+
+.timer-date {
+  color: #365f65;
+  font-weight: 900;
+}
+
+.timer-display {
+  display: grid;
+  min-height: 150px;
+  place-items: center;
+  color: #172526;
+  background: #f8fbfa;
+  border: 1px solid #dbe5e3;
+  border-radius: 8px;
+  font-size: clamp(42px, 11vw, 76px);
+  font-variant-numeric: tabular-nums;
+  font-weight: 900;
+  letter-spacing: 0;
+}
+
+.timer-actions {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.timer-main-button {
+  min-height: 58px;
+  background: #18c834;
+  font-size: 18px;
+}
+
+.timer-main-button.stop {
+  background: #d24b3a;
+}
+
+.timer-reset-button {
+  min-width: 116px;
+}
+
+.timer-result {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 14px;
+  padding: 14px;
+  color: #4a4a4a;
+  background: #f3f3f3;
+  border-radius: 8px;
+  font-weight: 900;
+}
+
+.timer-result strong {
+  color: #1f68c9;
+  font-size: 22px;
+}
+
+.timer-memo {
+  margin-top: 14px;
+}
+
+.timer-subject-header {
+  padding-right: 0;
+  padding-left: 0;
+}
+
+.timer-subject-grid {
+  padding-right: 0;
+  padding-left: 0;
+}
+
+.timer-save-actions {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  margin-top: 4px;
+}
+
 @media (max-width: 640px) {
+  .user-menu span {
+    max-width: 96px;
+  }
+
   .calendar-record-row {
     grid-template-columns: 38px minmax(0, 1fr);
   }
@@ -392,5 +605,10 @@
   .pie-chart,
   .empty-pie {
     width: 220px;
+  }
+
+  .timer-actions,
+  .timer-save-actions {
+    grid-template-columns: 1fr;
   }
 }
