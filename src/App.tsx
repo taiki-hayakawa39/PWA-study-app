@@ -35,6 +35,7 @@ function App() {
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(todayKey);
   const [activeView, setActiveView] = useState<AppView>("input");
+  const [editRecordRequest, setEditRecordRequest] = useState<StudyRecord | null>(null);
 
   const monthKey = getMonthKey(currentMonth);
 
@@ -139,6 +140,12 @@ function App() {
     setCurrentMonth(new Date(year, month - 1, 1));
   };
 
+  const editRecordFromCalendar = (record: StudyRecord) => {
+    selectDate(record.date);
+    setEditRecordRequest(record);
+    setActiveView("input");
+  };
+
   const changeMonth = (amount: number) => {
     const nextMonth = moveMonth(currentMonth, amount);
     setCurrentMonth(nextMonth);
@@ -164,6 +171,8 @@ function App() {
               selectedDate={selectedDate}
               subjects={data.subjects}
               records={data.studyRecords}
+              editRecordRequest={editRecordRequest}
+              onEditRecordLoaded={() => setEditRecordRequest(null)}
               onSelectDate={selectDate}
               onAddRecord={addRecord}
               onUpdateRecord={updateRecord}
@@ -194,10 +203,17 @@ function App() {
               selectedDate={selectedDate}
               todayKey={todayKey}
               dailyTotals={dailyTotals}
+              records={data.studyRecords}
+              subjects={data.subjects}
               onChangeMonth={changeMonth}
               onSelectDate={selectDate}
             />
-            <CalendarRecordList records={monthlyRecords} subjects={data.subjects} />
+            <CalendarRecordList
+              records={monthlyRecords}
+              subjects={data.subjects}
+              onEditRecord={editRecordFromCalendar}
+              onDeleteRecord={deleteRecord}
+            />
           </div>
         )}
 
