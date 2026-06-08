@@ -6,6 +6,8 @@ import { formatMinutes } from "../utils/time";
 type CalendarRecordListProps = {
   records: StudyRecord[];
   subjects: Subject[];
+  onEditRecord: (record: StudyRecord) => void;
+  onDeleteRecord: (recordId: string) => void;
 };
 
 const dateLabel = (dateKey: string) => {
@@ -15,7 +17,7 @@ const dateLabel = (dateKey: string) => {
   return `${year}年${month}月${day}日(${weekdays[date.getDay()]})`;
 };
 
-export function CalendarRecordList({ records, subjects }: CalendarRecordListProps) {
+export function CalendarRecordList({ records, subjects, onEditRecord, onDeleteRecord }: CalendarRecordListProps) {
   const groupedRecords = records
     .slice()
     .sort((a, b) => b.date.localeCompare(a.date) || b.updatedAt.localeCompare(a.updatedAt))
@@ -67,7 +69,15 @@ export function CalendarRecordList({ records, subjects }: CalendarRecordListProp
                         <strong>{subject?.name ?? "削除済みサブジェクト"}</strong>
                         <p>{record.memo || "メモなし"}</p>
                       </div>
-                      <span>{formatMinutes(record.durationMinutes)}</span>
+                      <div className="calendar-record-actions">
+                        <span>{formatMinutes(record.durationMinutes)}</span>
+                        <button className="icon-button subtle" type="button" onClick={() => onEditRecord(record)}>
+                          編集
+                        </button>
+                        <button className="icon-button danger" type="button" onClick={() => onDeleteRecord(record.id)}>
+                          削除
+                        </button>
+                      </div>
                     </article>
                   );
                 })}
