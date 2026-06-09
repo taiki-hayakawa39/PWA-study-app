@@ -1,0 +1,91 @@
+/* Final theme alignment for calendar, report, and summary surfaces. */
+.metric-band > div {
+  background: #18c834;
+}
+
+.metric-band > div:last-child {
+  background: #18a932;
+}
+
+.calendar-day:hover {
+  border-color: #18c834;
+  background: #f2fff4;
+}
+
+.calendar-day.is-selected {
+  border-color: #18c834;
+  box-shadow: inset 0 0 0 2px #18c834;
+}
+
+.calendar-day.is-today .day-number {
+  background: #18c834;
+}
+
+.day-total,
+.breakdown-formula,
+.timer-result strong {
+  color: #18a932;
+}
+
+.day-actual {
+  color: #1f68c9;
+}
+
+.day-goal {
+  color: #d24b3a;
+}
+
+.day-clear {
+  color: #12802a;
+  background: #e7faeb;
+  border-color: #9be5a8;
+}
+
+.record-type-label.actual {
+  color: #1f68c9;
+  background: #eaf2ff;
+  border-color: #b8d4ff;
+}
+
+.record-type-label.goal {
+  color: #d24b3a;
+  background: #fff0ee;
+}
+
+.total-chip {
+  color: #12802a;
+  background: #e7faeb;
+  border-color: #9be5a8;
+}
+
+.calendar-record-date {
+  color: #12802a;
+  background: #e7faeb;
+}
+
+.calendar-record-row > span:last-child,
+.calendar-record-actions > span,
+.report-row > span:last-child {
+  color: #18a932;
+}
+
+.report-panel .pie-bg,
+.empty-pie {
+  background: #e7faeb;
+  color: #18a932;
+  stroke: #e7faeb;
+}
+
+.pie-center {
+  border: 1px solid #d7f2dc;
+  box-shadow: 0 10px 24px rgba(24, 200, 52, 0.12);
+}
+
+.pie-center span,
+.report-row p {
+  color: #5d7d62;
+}
+
+.pie-center strong {
+  color: #12802a;
+}
