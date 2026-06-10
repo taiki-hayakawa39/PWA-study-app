@@ -1,0 +1,18 @@
+{
+  "name": "Study Ledger",
+  "short_name": "Study",
+  "description": "勉強時間と目標時間を記録する学習管理アプリ",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#eef4f2",
+  "theme_color": "#18c834",
+  "icons": [
+    {
+      "src": "/icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { BookOpen, CalendarDays, LogOut, Pencil, PieChart, Timer } from "lucide-react";
 import { AuthPanel } from "./components/AuthPanel";
 import type { AuthUser } from "./components/AuthPanel";
@@ -34,6 +34,10 @@ const initialData: StudyData = {
 };
 
 type AppView = "input" | "calendar" | "timer" | "report";
+type PendingAppUpdate = {
+  registration?: ServiceWorkerRegistration;
+  source: "service-worker" | "version";
+};
 
 const loadSessionUser = (): AuthUser | null => {
   try {
@@ -56,6 +60,7 @@ function App() {
   const [selectedDate, setSelectedDate] = useState(todayKey);
   const [activeView, setActiveView] = useState<AppView>("input");
   const [editRecordRequest, setEditRecordRequest] = useState<StudyRecord | null>(null);
+  const [pendingAppUpdate, setPendingAppUpdate] = useState<PendingAppUpdate | null>(null);
 
   const monthKey = getMonthKey(currentMonth);
 
@@ -105,6 +110,32 @@ function App() {
 
   const monthlyTotal = monthlyRecords.reduce((sum, record) => sum + record.durationMinutes, 0);
   const todayTotal = dailyTotals.get(todayKey) ?? 0;
+
+  useEffect(() => {
+    const handleUpdateAvailable = (event: Event) => {
+      setPendingAppUpdate((event as CustomEvent<PendingAppUpdate>).detail);
+    };
+
+    window.addEventListener("study-ledger-update-available", handleUpdateAvailable);
+    return () => window.removeEventListener("study-ledger-update-available", handleUpdateAvailable);
+  }, []);
+
+  const applyAppUpdate = () => {
+    const waitingWorker = pendingAppUpdate?.registration?.waiting;
+    if (!waitingWorker || !("serviceWorker" in navigator)) {
+      window.location.reload();
+      return;
+    }
+
+    let hasRefreshed = false;
+    navigator.serviceWorker.addEventListener("controllerchange", () => {
+      if (hasRefreshed) return;
+      hasRefreshed = true;
+      window.location.reload();
+    });
+
+    waitingWorker.postMessage({ type: "SKIP_WAITING" });
+  };
 
   const login = (user: AuthUser) => {
     localStorage.setItem(sessionKey, user.id);
@@ -310,6 +341,18 @@ function App() {
           </div>
         )}
       </main>
+
+      {pendingAppUpdate && (
+        <div className="update-toast" role="status" aria-live="polite">
+          <div>
+            <strong>新しいバージョンがあります</strong>
+            <span>更新すると最新の画面に切り替わります。</span>
+          </div>
+          <button className="primary-button" type="button" onClick={applyAppUpdate}>
+            更新する
+          </button>
+        </div>
+      )}
 
       <nav className="bottom-nav" aria-label="メインメニュー">
         <button className={activeView === "input" ? "is-active" : ""} type="button" onClick={() => setActiveView("input")}>
