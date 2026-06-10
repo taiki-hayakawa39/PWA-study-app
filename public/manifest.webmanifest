@@ -1,7 +1,7 @@
 {
-  "name": "Study Ledger",
-  "short_name": "Study",
-  "description": "勉強時間と目標時間を記録する学習管理アプリ",
+  "name": "TimeVest",
+  "short_name": "TimeVest",
+  "description": "学習時間を未来への投資として記録するアプリ",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",

@@ -82,8 +82,8 @@ export function AuthPanel({ onLogin }: AuthPanelProps) {
             <BookOpen size={24} />
           </div>
           <div>
-            <p className="eyebrow">Study Ledger</p>
-            <h1>勉強時間管理</h1>
+            <p className="eyebrow">TimeVest</p>
+            <h1>TimeVest</h1>
           </div>
         </div>
 

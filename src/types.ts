@@ -20,8 +20,17 @@ export type StudyRecord = StudyEntry;
 
 export type StudyGoal = StudyEntry;
 
+export type UserProfile = {
+  displayName: string;
+  bio: string;
+  longTermGoal: string;
+  avatarDataUrl: string;
+  updatedAt: string;
+};
+
 export type StudyData = {
   subjects: Subject[];
   studyRecords: StudyRecord[];
   studyGoals: StudyGoal[];
+  profile?: UserProfile;
 };

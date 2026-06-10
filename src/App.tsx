@@ -1,16 +1,17 @@
 import { useEffect, useMemo, useState } from "react";
-import { BookOpen, CalendarDays, LogOut, Pencil, PieChart, Timer } from "lucide-react";
+import { BookOpen, CalendarDays, LogOut, Pencil, PieChart, Timer, UserRound } from "lucide-react";
 import { AuthPanel } from "./components/AuthPanel";
 import type { AuthUser } from "./components/AuthPanel";
 import { Calendar } from "./components/Calendar";
 import { CalendarRecordList } from "./components/CalendarRecordList";
+import { MyPage } from "./components/MyPage";
 import { ReportPanel } from "./components/ReportPanel";
 import { RecordPanel } from "./components/RecordPanel";
 import { SubjectManager } from "./components/SubjectManager";
 import { Summary } from "./components/Summary";
 import { TimerPanel } from "./components/TimerPanel";
 import { useLocalStorage } from "./hooks/useLocalStorage";
-import type { StudyData, StudyGoal, StudyRecord, Subject } from "./types";
+import type { StudyData, StudyGoal, StudyRecord, Subject, UserProfile } from "./types";
 import { getMonthKey, moveMonth, toDateKey } from "./utils/date";
 import { subjectColorOptions, subjectIconOptions } from "./utils/subjectVisuals";
 
@@ -31,9 +32,10 @@ const initialData: StudyData = {
   ],
   studyRecords: [],
   studyGoals: [],
+  profile: undefined,
 };
 
-type AppView = "input" | "calendar" | "timer" | "report";
+type AppView = "input" | "calendar" | "timer" | "report" | "mypage";
 type PendingAppUpdate = {
   registration?: ServiceWorkerRegistration;
   source: "service-worker" | "version";
@@ -234,6 +236,10 @@ function App() {
     }));
   };
 
+  const saveProfile = (profile: UserProfile) => {
+    updateData((current) => ({ ...current, profile }));
+  };
+
   const selectDate = (dateKey: string) => {
     setSelectedDate(dateKey);
     const [year, month] = dateKey.split("-").map(Number);
@@ -263,8 +269,8 @@ function App() {
           <BookOpen size={24} />
         </div>
         <div>
-          <p className="eyebrow">Study Ledger</p>
-          <h1>勉強時間管理</h1>
+          <p className="eyebrow">TimeVest</p>
+          <h1>TimeVest</h1>
         </div>
         <div className="user-menu">
           <span>{currentUser.username}</span>
@@ -340,6 +346,19 @@ function App() {
             <ReportPanel monthlyTotal={monthlyTotal} subjectTotals={subjectTotals} subjects={safeData.subjects} />
           </div>
         )}
+
+        {activeView === "mypage" && (
+          <div className="view-stack">
+            <MyPage
+              username={currentUser.username}
+              profile={safeData.profile}
+              records={safeData.studyRecords}
+              monthlyTotal={monthlyTotal}
+              todayTotal={todayTotal}
+              onSaveProfile={saveProfile}
+            />
+          </div>
+        )}
       </main>
 
       {pendingAppUpdate && (
@@ -370,6 +389,10 @@ function App() {
         <button className={activeView === "report" ? "is-active" : ""} type="button" onClick={() => setActiveView("report")}>
           <PieChart size={25} />
           <span>レポート</span>
+        </button>
+        <button className={activeView === "mypage" ? "is-active" : ""} type="button" onClick={() => setActiveView("mypage")}>
+          <UserRound size={25} />
+          <span>マイページ</span>
         </button>
       </nav>
     </div>
