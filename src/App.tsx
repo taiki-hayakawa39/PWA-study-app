@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
-import { BookOpen, CalendarDays, LogOut, Pencil, PieChart, Timer, UserRound } from "lucide-react";
+import { BookOpen, CalendarDays, Pencil, PieChart, Timer, UserRound } from "lucide-react";
 import { AuthPanel } from "./components/AuthPanel";
 import type { AuthUser } from "./components/AuthPanel";
 import { Calendar } from "./components/Calendar";
 import { CalendarRecordList } from "./components/CalendarRecordList";
+import { HeaderMenu } from "./components/HeaderMenu";
 import { MyPage } from "./components/MyPage";
+import type { FriendSummary, PublicLearningRecord, PublicProfileSummary } from "./components/MyPage";
 import { ReportPanel } from "./components/ReportPanel";
 import { RecordPanel } from "./components/RecordPanel";
 import { SubjectManager } from "./components/SubjectManager";
@@ -13,9 +15,11 @@ import { TimerPanel } from "./components/TimerPanel";
 import { useLocalStorage } from "./hooks/useLocalStorage";
 import type { StudyData, StudyGoal, StudyRecord, Subject, UserProfile } from "./types";
 import { getMonthKey, moveMonth, toDateKey } from "./utils/date";
+import { calculateStudyStats } from "./utils/studyStats";
 import { subjectColorOptions, subjectIconOptions } from "./utils/subjectVisuals";
 
 const sessionKey = "study-ledger-current-user-v1";
+const usersKey = "study-ledger-users-v1";
 
 const nowIso = () => new Date().toISOString();
 const createId = () =>
@@ -45,11 +49,128 @@ const loadSessionUser = (): AuthUser | null => {
   try {
     const savedUserId = localStorage.getItem(sessionKey);
     if (!savedUserId) return null;
-    const users = JSON.parse(localStorage.getItem("study-ledger-users-v1") || "[]") as AuthUser[];
+    const users = normalizeUsers(JSON.parse(localStorage.getItem(usersKey) || "[]") as Partial<AuthUser>[]);
+    saveUsers(users);
     return users.find((user) => user.id === savedUserId) ?? null;
   } catch {
     return null;
   }
+};
+
+const loadAllUsers = (): AuthUser[] => {
+  try {
+    const users = JSON.parse(localStorage.getItem(usersKey) || "[]") as Partial<AuthUser>[];
+    if (!Array.isArray(users)) return [];
+    const normalizedUsers = normalizeUsers(users);
+    saveUsers(normalizedUsers);
+    return normalizedUsers;
+  } catch {
+    return [];
+  }
+};
+
+const saveUsers = (users: AuthUser[]) => {
+  localStorage.setItem(usersKey, JSON.stringify(users));
+};
+
+const createFriendCode = (users: Partial<AuthUser>[]) => {
+  const usedCodes = new Set(users.map((user) => user.friendCode).filter(Boolean));
+
+  for (let index = 0; index < 10000; index += 1) {
+    const code = Math.floor(Math.random() * 10000)
+      .toString()
+      .padStart(4, "0");
+    if (!usedCodes.has(code)) return code;
+  }
+
+  return Date.now().toString().slice(-4);
+};
+
+const normalizeUsers = (users: Partial<AuthUser>[]): AuthUser[] => {
+  const normalizedUsers: AuthUser[] = [];
+
+  users.forEach((user) => {
+    if (!user.id || !user.username || !user.passwordHash || !user.createdAt) return;
+    normalizedUsers.push({
+      id: user.id,
+      username: user.username,
+      passwordHash: user.passwordHash,
+      friendCode: user.friendCode ?? createFriendCode([...normalizedUsers, ...users]),
+      friendIds: Array.isArray(user.friendIds) ? user.friendIds : [],
+      createdAt: user.createdAt,
+    });
+  });
+
+  return normalizedUsers;
+};
+
+const getDisplayName = (user: AuthUser) => {
+  try {
+    const savedData = JSON.parse(localStorage.getItem(`study-ledger-data-v1:${user.id}`) || "null") as StudyData | null;
+    return savedData?.profile?.displayName || user.username;
+  } catch {
+    return user.username;
+  }
+};
+
+const loadFriendSummaries = (currentUser: AuthUser): FriendSummary[] => {
+  const friendIds = new Set(currentUser.friendIds ?? []);
+  return loadAllUsers()
+    .filter((user) => friendIds.has(user.id))
+    .map((user) => ({
+      id: user.id,
+      username: user.username,
+      displayName: getDisplayName(user),
+      friendCode: user.friendCode,
+    }));
+};
+
+const loadPublicProfiles = (currentUser: AuthUser): PublicProfileSummary[] => {
+  const friendIds = new Set(currentUser.friendIds ?? []);
+
+  return loadAllUsers()
+    .filter((user) => user.id !== currentUser.id && friendIds.has(user.id))
+    .flatMap((user) => {
+      try {
+        const savedData = JSON.parse(localStorage.getItem(`study-ledger-data-v1:${user.id}`) || "null") as StudyData | null;
+        const profile = savedData?.profile;
+        const publicSettings = profile?.publicSettings;
+        const hasPublicContent = publicSettings?.profile || publicSettings?.studyStats || publicSettings?.learningContent;
+
+        if (!savedData || !profile || !hasPublicContent) return [];
+
+        const summary: PublicProfileSummary = {
+          userId: user.id,
+          username: user.username,
+          friendCode: user.friendCode,
+          displayName: publicSettings.profile ? profile.displayName || user.username : user.username,
+          bio: publicSettings.profile ? profile.bio : "",
+          longTermGoal: publicSettings.profile ? profile.longTermGoal : "",
+          avatarDataUrl: publicSettings.profile ? profile.avatarDataUrl : "",
+        };
+
+        if (publicSettings.studyStats) {
+          summary.stats = calculateStudyStats(savedData.studyRecords ?? []);
+        }
+
+        if (publicSettings.learningContent) {
+          summary.learningRecords = [...(savedData.studyRecords ?? [])]
+            .sort((a, b) => `${b.date}${b.updatedAt}`.localeCompare(`${a.date}${a.updatedAt}`))
+            .slice(0, 5)
+            .map<PublicLearningRecord>((record) => ({
+              id: record.id,
+              date: record.date,
+              subjectName: savedData.subjects.find((subject) => subject.id === record.subjectId)?.name ?? "削除済み教材",
+              durationMinutes: record.durationMinutes,
+              memo: record.memo,
+            }));
+        }
+
+        return [summary];
+      } catch {
+        return [];
+      }
+    });
 };
 
 function App() {
@@ -112,6 +233,11 @@ function App() {
 
   const monthlyTotal = monthlyRecords.reduce((sum, record) => sum + record.durationMinutes, 0);
   const todayTotal = dailyTotals.get(todayKey) ?? 0;
+  const publicProfiles = useMemo(
+    () => (currentUser ? loadPublicProfiles(currentUser) : []),
+    [currentUser, safeData.profile, safeData.studyRecords],
+  );
+  const friends = useMemo(() => (currentUser ? loadFriendSummaries(currentUser) : []), [currentUser, safeData.profile]);
 
   useEffect(() => {
     const handleUpdateAvailable = (event: Event) => {
@@ -149,6 +275,39 @@ function App() {
     setCurrentUser(null);
     setActiveView("input");
     setEditRecordRequest(null);
+  };
+
+  const addFriend = (friendCode: string) => {
+    if (!currentUser) return "ログインし直してください";
+    const cleanCode = friendCode.trim();
+    if (!/^\d{4}$/.test(cleanCode)) return "4桁の数字を入力してください";
+
+    const users = loadAllUsers();
+    const current = users.find((user) => user.id === currentUser.id);
+    const target = users.find((user) => user.friendCode === cleanCode);
+
+    if (!current) return "ユーザー情報を確認できませんでした";
+    if (!target) return "このフレンドコードのユーザーは見つかりません";
+    if (target.id === current.id) return "自分のコードは追加できません";
+    if ((current.friendIds ?? []).includes(target.id)) return "すでにフレンドです";
+
+    const updatedUsers = users.map((user) => {
+      if (user.id === current.id) {
+        return { ...user, friendIds: [...new Set([...(user.friendIds ?? []), target.id])] };
+      }
+      if (user.id === target.id) {
+        return { ...user, friendIds: [...new Set([...(user.friendIds ?? []), current.id])] };
+      }
+      return user;
+    });
+    saveUsers(updatedUsers);
+
+    const updatedCurrentUser = updatedUsers.find((user) => user.id === current.id);
+    if (updatedCurrentUser) {
+      setCurrentUser(updatedCurrentUser);
+    }
+
+    return `${getDisplayName(target)}をフレンドに追加しました`;
   };
 
   const updateData = (recipe: (current: StudyData) => StudyData) => {
@@ -273,10 +432,8 @@ function App() {
           <h1>TimeVest</h1>
         </div>
         <div className="user-menu">
-          <span>{currentUser.username}</span>
-          <button className="icon-button subtle" type="button" onClick={logout} aria-label="ログアウト">
-            <LogOut size={18} />
-          </button>
+          <span>{safeData.profile?.displayName || currentUser.username}</span>
+          <HeaderMenu username={currentUser.username} profile={safeData.profile} onSaveProfile={saveProfile} onLogout={logout} />
         </div>
       </header>
 
@@ -355,7 +512,10 @@ function App() {
               records={safeData.studyRecords}
               monthlyTotal={monthlyTotal}
               todayTotal={todayTotal}
-              onSaveProfile={saveProfile}
+              friendCode={currentUser.friendCode}
+              friends={friends}
+              publicProfiles={publicProfiles}
+              onAddFriend={addFriend}
             />
           </div>
         )}

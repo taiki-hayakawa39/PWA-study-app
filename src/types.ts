@@ -25,6 +25,11 @@ export type UserProfile = {
   bio: string;
   longTermGoal: string;
   avatarDataUrl: string;
+  publicSettings?: {
+    profile: boolean;
+    studyStats: boolean;
+    learningContent: boolean;
+  };
   updatedAt: string;
 };
 

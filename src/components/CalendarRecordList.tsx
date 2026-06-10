@@ -1,5 +1,6 @@
 import type { CSSProperties } from "react";
 import type { StudyRecord, Subject } from "../types";
+import { formatTimeLabel } from "../utils/date";
 import { getSubjectColor, getSubjectIcon } from "../utils/subjectVisuals";
 import { formatMinutes } from "../utils/time";
 
@@ -41,11 +42,15 @@ export function CalendarRecordList({ records, subjects, onEditRecord, onDeleteRe
         ) : (
           [...groupedRecords.entries()].map(([date, dateRecords]) => {
             const dailyTotal = dateRecords.reduce((sum, record) => sum + record.durationMinutes, 0);
+            const inputTimes = dateRecords.map((record) => formatTimeLabel(record.createdAt || record.updatedAt));
 
             return (
               <div className="calendar-record-group" key={date}>
                 <div className="calendar-record-date">
-                  <strong>{dateLabel(date)}</strong>
+                  <strong>
+                    {dateLabel(date)}
+                    <span className="calendar-record-times">{inputTimes.join(" / ")}</span>
+                  </strong>
                   <span>{formatMinutes(dailyTotal)}</span>
                 </div>
 
@@ -67,7 +72,10 @@ export function CalendarRecordList({ records, subjects, onEditRecord, onDeleteRe
                       </span>
                       <div>
                         <strong>{subject?.name ?? "削除済みサブジェクト"}</strong>
-                        <p>{record.memo || "メモなし"}</p>
+                        <p>
+                          <span className="record-input-time">入力 {formatTimeLabel(record.createdAt || record.updatedAt)}</span>
+                          {record.memo || "メモなし"}
+                        </p>
                       </div>
                       <div className="calendar-record-actions">
                         <span>{formatMinutes(record.durationMinutes)}</span>

@@ -19,6 +19,15 @@ export const getDateLabel = (dateKey: string): string => {
   return `${year}年${Number(month)}月${Number(day)}日`;
 };
 
+export const formatTimeLabel = (isoDate: string): string => {
+  const date = new Date(isoDate);
+  if (Number.isNaN(date.getTime())) return "--:--";
+
+  const hours = String(date.getHours()).padStart(2, "0");
+  const minutes = String(date.getMinutes()).padStart(2, "0");
+  return `${hours}:${minutes}`;
+};
+
 export const createCalendarDays = (monthDate: Date): Array<Date | null> => {
   const year = monthDate.getFullYear();
   const month = monthDate.getMonth();

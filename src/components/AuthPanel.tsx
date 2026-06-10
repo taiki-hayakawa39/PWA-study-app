@@ -5,6 +5,8 @@ export type AuthUser = {
   id: string;
   username: string;
   passwordHash: string;
+  friendCode: string;
+  friendIds: string[];
   createdAt: string;
 };
 
@@ -32,6 +34,37 @@ const saveUsers = (users: AuthUser[]) => {
   localStorage.setItem(usersKey, JSON.stringify(users));
 };
 
+const createFriendCode = (users: Partial<AuthUser>[]) => {
+  const usedCodes = new Set(users.map((user) => user.friendCode).filter(Boolean));
+
+  for (let index = 0; index < 10000; index += 1) {
+    const code = Math.floor(Math.random() * 10000)
+      .toString()
+      .padStart(4, "0");
+    if (!usedCodes.has(code)) return code;
+  }
+
+  return Date.now().toString().slice(-4);
+};
+
+const normalizeUsers = (users: Partial<AuthUser>[]): AuthUser[] => {
+  const normalized: AuthUser[] = [];
+
+  users.forEach((user) => {
+    if (!user.id || !user.username || !user.passwordHash || !user.createdAt) return;
+    normalized.push({
+      id: user.id,
+      username: user.username,
+      passwordHash: user.passwordHash,
+      friendCode: user.friendCode ?? createFriendCode([...normalized, ...users]),
+      friendIds: Array.isArray(user.friendIds) ? user.friendIds : [],
+      createdAt: user.createdAt,
+    });
+  });
+
+  return normalized;
+};
+
 const hashPassword = async (password: string) => {
   const data = new TextEncoder().encode(password);
   const digest = await crypto.subtle.digest("SHA-256", data);
@@ -52,7 +85,8 @@ export function AuthPanel({ onLogin }: AuthPanelProps) {
       return;
     }
 
-    const users = loadUsers();
+    const users = normalizeUsers(loadUsers());
+    saveUsers(users);
     const passwordHash = await hashPassword(password);
 
     if (mode === "signup") {
@@ -60,7 +94,14 @@ export function AuthPanel({ onLogin }: AuthPanelProps) {
         setMessage("このユーザー名はすでに使われています");
         return;
       }
-      const user: AuthUser = { id: createId(), username: cleanUsername, passwordHash, createdAt: new Date().toISOString() };
+      const user: AuthUser = {
+        id: createId(),
+        username: cleanUsername,
+        passwordHash,
+        friendCode: createFriendCode(users),
+        friendIds: [],
+        createdAt: new Date().toISOString(),
+      };
       saveUsers([...users, user]);
       onLogin(user);
       return;
