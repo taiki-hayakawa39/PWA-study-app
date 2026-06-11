@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite --host 127.0.0.1",
     "build": "node scripts/write-version.mjs && tsc -b && vite build && node scripts/reset-version.mjs",
+    "build:github-pages": "node scripts/write-version.mjs && tsc -b && vite build --mode github-pages && node scripts/reset-version.mjs",
     "preview": "vite preview --host 127.0.0.1"
   },
   "dependencies": {

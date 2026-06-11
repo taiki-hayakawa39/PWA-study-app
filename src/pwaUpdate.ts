@@ -1,6 +1,7 @@
 const updateEventName = "study-ledger-update-available";
 const updateCheckIntervalMs = 60 * 60 * 1000;
 const versionStorageKey = "study-ledger-app-version-v1";
+const appBaseUrl = import.meta.env.BASE_URL;
 
 const notifyUpdateAvailable = (detail: { registration?: ServiceWorkerRegistration; source: "service-worker" | "version" }) => {
   window.dispatchEvent(new CustomEvent(updateEventName, { detail }));
@@ -8,7 +9,7 @@ const notifyUpdateAvailable = (detail: { registration?: ServiceWorkerRegistratio
 
 const checkAppVersion = async () => {
   try {
-    const response = await fetch(`/version.json?checkedAt=${Date.now()}`, { cache: "no-store" });
+    const response = await fetch(`${appBaseUrl}version.json?checkedAt=${Date.now()}`, { cache: "no-store" });
     if (!response.ok) return;
 
     const build = (await response.json()) as { version?: string };
@@ -43,7 +44,7 @@ export function registerAppServiceWorker() {
 
   window.addEventListener("load", async () => {
     try {
-      const registration = await navigator.serviceWorker.register("/sw.js");
+      const registration = await navigator.serviceWorker.register(`${appBaseUrl}sw.js`, { scope: appBaseUrl });
 
       if (registration.waiting && navigator.serviceWorker.controller) {
         notifyUpdateAvailable({ registration, source: "service-worker" });

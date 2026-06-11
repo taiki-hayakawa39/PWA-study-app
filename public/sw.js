@@ -1,5 +1,13 @@
 const cacheVersion = "study-ledger-cache-v1";
-const appShell = ["/", "/index.html", "/manifest.webmanifest", "/icons/icon.svg"];
+const appScope = new URL(self.registration.scope).pathname;
+const appShell = [
+  appScope,
+  `${appScope}index.html`,
+  `${appScope}manifest.webmanifest`,
+  `${appScope}icons/icon-192.png`,
+  `${appScope}icons/icon-512.png`,
+  `${appScope}icons/apple-touch-icon.png`,
+];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
@@ -34,10 +42,10 @@ self.addEventListener("fetch", (event) => {
       fetch(request)
         .then((response) => {
           const copy = response.clone();
-          caches.open(cacheVersion).then((cache) => cache.put("/index.html", copy));
+          caches.open(cacheVersion).then((cache) => cache.put(`${appScope}index.html`, copy));
           return response;
         })
-        .catch(() => caches.match("/index.html")),
+        .catch(() => caches.match(`${appScope}index.html`)),
     );
     return;
   }

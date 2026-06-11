@@ -65,10 +65,38 @@ const normalizeUsers = (users: Partial<AuthUser>[]): AuthUser[] => {
   return normalized;
 };
 
+const fallbackHashPassword = (password: string) => {
+  let hash = 2166136261;
+  for (let index = 0; index < password.length; index += 1) {
+    hash ^= password.charCodeAt(index);
+    hash = Math.imul(hash, 16777619);
+  }
+  return `local:${(hash >>> 0).toString(16).padStart(8, "0")}`;
+};
+
 const hashPassword = async (password: string) => {
+  if (!crypto?.subtle) {
+    return fallbackHashPassword(password);
+  }
+
   const data = new TextEncoder().encode(password);
   const digest = await crypto.subtle.digest("SHA-256", data);
-  return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
+  return `sha256:${[...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, "0")).join("")}`;
+};
+
+const verifyPassword = async (password: string, savedHash: string) => {
+  if (savedHash.startsWith("local:")) {
+    return fallbackHashPassword(password) === savedHash;
+  }
+
+  const hashedPassword = await hashPassword(password);
+  if (savedHash.startsWith("sha256:")) {
+    return hashedPassword === savedHash;
+  }
+
+  // 以前に作ったユーザーは接頭辞なしのSHA-256で保存されています。
+  if (!crypto?.subtle) return false;
+  return hashedPassword.replace("sha256:", "") === savedHash;
 };
 
 export function AuthPanel({ onLogin }: AuthPanelProps) {
@@ -107,7 +135,9 @@ export function AuthPanel({ onLogin }: AuthPanelProps) {
       return;
     }
 
-    const user = users.find((item) => item.username === cleanUsername && item.passwordHash === passwordHash);
+    const userCandidates = users.filter((item) => item.username === cleanUsername);
+    const userMatches = await Promise.all(userCandidates.map(async (item) => verifyPassword(password, item.passwordHash)));
+    const user = userCandidates.find((_, index) => userMatches[index]);
     if (!user) {
       setMessage("ユーザー名またはパスワードが違います");
       return;

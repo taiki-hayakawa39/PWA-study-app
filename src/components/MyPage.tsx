@@ -1,5 +1,5 @@
 import { useMemo, useState, type FormEvent } from "react";
-import { Eye, Flame, Target, UserPlus, UserRound, UsersRound } from "lucide-react";
+import { Flame, Target, UserPlus, UserRound, UsersRound } from "lucide-react";
 import type { StudyRecord, UserProfile } from "../types";
 import { getDateLabel } from "../utils/date";
 import { calculateStudyStats } from "../utils/studyStats";
@@ -84,11 +84,6 @@ export function MyPage({
   const bio = profile?.bio?.trim() || "自己紹介はまだ設定されていません。右上のメニューから追加できます。";
   const longTermGoal = profile?.longTermGoal?.trim() || "長期的な目標はまだ設定されていません。右上のメニューから追加できます。";
   const avatarDataUrl = profile?.avatarDataUrl ?? "";
-  const publicSettings = {
-    profile: profile?.publicSettings?.profile ?? false,
-    studyStats: profile?.publicSettings?.studyStats ?? false,
-    learningContent: profile?.publicSettings?.learningContent ?? false,
-  };
 
   const addFriend = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -161,21 +156,6 @@ export function MyPage({
           <strong>{formatMinutes(todayTotal)}</strong>
         </div>
       </div>
-
-      <section className="profile-public-summary" aria-label="公開設定">
-        <div className="public-settings-title">
-          <Eye size={20} />
-          <div>
-            <strong>公開設定</strong>
-            <span>右上のメニューで変更した内容がここに反映されます。</span>
-          </div>
-        </div>
-        <div className="profile-public-badges">
-          <span className={publicSettings.profile ? "is-public" : ""}>プロフィール {publicSettings.profile ? "公開中" : "非公開"}</span>
-          <span className={publicSettings.studyStats ? "is-public" : ""}>学習日数 {publicSettings.studyStats ? "公開中" : "非公開"}</span>
-          <span className={publicSettings.learningContent ? "is-public" : ""}>学習内容 {publicSettings.learningContent ? "公開中" : "非公開"}</span>
-        </div>
-      </section>
 
       <section className="friend-panel" aria-label="フレンド">
         <div className="section-title-row">
