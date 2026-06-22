@@ -57,6 +57,12 @@ export function TimerPanel({ selectedDate, subjects, onAddRecord }: TimerPanelPr
     setStartedAt(Date.now());
   };
 
+  const resumeTimer = () => {
+    setSuccessMessage("");
+    setPendingMinutes(null);
+    setStartedAt(Date.now() - elapsedMs);
+  };
+
   const stopTimer = () => {
     if (startedAt === null) return;
     const finalElapsed = Date.now() - startedAt;
@@ -105,9 +111,14 @@ export function TimerPanel({ selectedDate, subjects, onAddRecord }: TimerPanelPr
 
       <div className="timer-actions">
         {!isRunning ? (
-          <button className="primary-button timer-main-button" type="button" onClick={startTimer} disabled={subjects.length === 0}>
+          <button
+            className="primary-button timer-main-button"
+            type="button"
+            onClick={elapsedMs > 0 ? resumeTimer : startTimer}
+            disabled={subjects.length === 0}
+          >
             <Play size={20} />
-            スタート
+            {elapsedMs > 0 ? "再開" : "スタート"}
           </button>
         ) : (
           <button className="primary-button timer-main-button stop" type="button" onClick={stopTimer}>
