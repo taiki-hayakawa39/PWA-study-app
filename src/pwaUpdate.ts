@@ -3,7 +3,7 @@ const updateCheckIntervalMs = 60 * 60 * 1000;
 const versionStorageKey = "study-ledger-app-version-v1";
 const appBaseUrl = import.meta.env.BASE_URL;
 
-const notifyUpdateAvailable = (detail: { registration?: ServiceWorkerRegistration; source: "service-worker" | "version" }) => {
+const notifyUpdateAvailable = (detail: { registration?: ServiceWorkerRegistration; source: "service-worker" | "version"; version?: string }) => {
   window.dispatchEvent(new CustomEvent(updateEventName, { detail }));
 };
 
@@ -22,7 +22,7 @@ const checkAppVersion = async () => {
     }
 
     if (currentVersion !== build.version) {
-      notifyUpdateAvailable({ source: "version" });
+      notifyUpdateAvailable({ source: "version", version: build.version });
     }
   } catch {
     // オフライン中は確認できないため、次回の表示時や定期チェックに任せます。
