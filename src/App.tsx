@@ -43,7 +43,10 @@ type AppView = "input" | "calendar" | "timer" | "report" | "mypage";
 type PendingAppUpdate = {
   registration?: ServiceWorkerRegistration;
   source: "service-worker" | "version";
+  version?: string;
 };
+
+const versionStorageKey = "study-ledger-app-version-v1";
 
 const loadSessionUser = (): AuthUser | null => {
   try {
@@ -184,6 +187,7 @@ function App() {
   const [activeView, setActiveView] = useState<AppView>("input");
   const [editRecordRequest, setEditRecordRequest] = useState<StudyRecord | null>(null);
   const [pendingAppUpdate, setPendingAppUpdate] = useState<PendingAppUpdate | null>(null);
+  const [isApplyingAppUpdate, setIsApplyingAppUpdate] = useState(false);
 
   const monthKey = getMonthKey(currentMonth);
 
@@ -241,6 +245,7 @@ function App() {
 
   useEffect(() => {
     const handleUpdateAvailable = (event: Event) => {
+      setIsApplyingAppUpdate(false);
       setPendingAppUpdate((event as CustomEvent<PendingAppUpdate>).detail);
     };
 
@@ -248,9 +253,30 @@ function App() {
     return () => window.removeEventListener("study-ledger-update-available", handleUpdateAvailable);
   }, []);
 
-  const applyAppUpdate = () => {
+  const confirmLatestAppVersion = async (fallbackVersion?: string) => {
+    try {
+      const response = await fetch(`${import.meta.env.BASE_URL}version.json?appliedAt=${Date.now()}`, { cache: "no-store" });
+      if (!response.ok) return fallbackVersion ?? "";
+
+      const build = (await response.json()) as { version?: string };
+      return build.version ?? fallbackVersion ?? "";
+    } catch {
+      return fallbackVersion ?? "";
+    }
+  };
+
+  const applyAppUpdate = async () => {
+    if (!pendingAppUpdate) return;
+    setIsApplyingAppUpdate(true);
+    const appliedVersion = await confirmLatestAppVersion(pendingAppUpdate.version);
+    if (appliedVersion) {
+      localStorage.setItem(versionStorageKey, appliedVersion);
+    }
+
     const waitingWorker = pendingAppUpdate?.registration?.waiting;
     if (!waitingWorker || !("serviceWorker" in navigator)) {
+      setPendingAppUpdate(null);
+      setIsApplyingAppUpdate(false);
       window.location.reload();
       return;
     }
@@ -259,6 +285,8 @@ function App() {
     navigator.serviceWorker.addEventListener("controllerchange", () => {
       if (hasRefreshed) return;
       hasRefreshed = true;
+      setPendingAppUpdate(null);
+      setIsApplyingAppUpdate(false);
       window.location.reload();
     });
 
@@ -527,8 +555,8 @@ function App() {
             <strong>新しいバージョンがあります</strong>
             <span>更新すると最新の画面に切り替わります。</span>
           </div>
-          <button className="primary-button" type="button" onClick={applyAppUpdate}>
-            更新する
+          <button className="primary-button" type="button" onClick={applyAppUpdate} disabled={isApplyingAppUpdate}>
+            {isApplyingAppUpdate ? "更新中..." : "更新する"}
           </button>
         </div>
       )}
